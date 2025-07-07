@@ -1,17 +1,4 @@
 # my-nix-utils/flake.nix
-#
-# This flake is itself a flake-parts flake. It defines its flake.flakePartsModules
-# output attribute, which contains the my-systems, my-homes, and my-modules definitions.
-# These are essentially "sub-modules" that know how to generate specific parts of a
-# larger flake's outputs.
-#
-# your-configs/flake.nix: When you specify my-nix-utils.inputs.flakePartsModules.<name>
-# in your imports list, flake-parts takes these imported modules and applies them to
-# your flake's definition. This effectively runs the logic from your helper flake's
-# systems.nix (which scans your local profiles/ directory) and wires everything up
-# automatically.
-#
-
 {
   description = "Reusable NixOS and Home-Manager Flake Utilities by YourName";
 
@@ -31,14 +18,19 @@
         "aarch64-darwin"
       ];
 
-      # Define an option for the root directory of the consuming flake's Nix files
-      options.flake.config.nixConfigRoot = lib.mkOption {
-        type = lib.types.str;
-        default = "./"; # Default to current directory if not specified (for direct usage)
-        description = "Root directory for Nix configurations in the consuming flake (e.g., './nix').";
-      };
-
       imports = [
+        # FIRST MODULE: Define the nixConfigRoot option.
+        # 'lib' is now explicitly in scope for this module.
+        ({ lib, ... }: {
+          options.flake.config.nixConfigRoot = lib.mkOption {
+            type = lib.types.str;
+            default = "./"; # Default to current directory if not specified (for direct usage)
+            description = "Root directory for Nix configurations in the consuming flake (e.g., './nix').";
+          };
+        })
+
+        # SECOND MODULE: Define the flakePartsModules and helpers.
+        # This module uses the 'config.nixConfigRoot' defined in the first module.
         ({ config, lib, ... }:
           let
             # Pass the configured nixConfigRoot to my-helpers.nix
