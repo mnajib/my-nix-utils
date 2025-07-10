@@ -19,24 +19,23 @@
       ];
 
       imports = [
-        # First module: defines nixConfigRoot option
+        # First module: defines config.nixConfigRoot
         ({ lib, ... }: {
           options.flake.config.nixConfigRoot = lib.mkOption {
             type = lib.types.str;
-            default = "./";
-            description = "Root directory for Nix configurations in the consuming flake (e.g., './nix').";
+            default = "./"; # fallback if not set by consumer
+            description = "Root directory for Nix configurations in the consumer flake (e.g., ./nix)";
           };
         })
 
-        # Second module: inject helpers
+        # Second module: helpers and modules exposed to consumer
         ({ config, lib, ... }:
           let
             helpers = import ./lib/my-helpers.nix {
               inherit lib;
-              nixConfigRoot = config.nixConfigRoot or ./.;  # Fallback for REPL or non-flake-parts context
+              nixConfigRoot = config.nixConfigRoot;
             };
-          in
-          {
+          in {
             flake.flakePartsModules = {
               my-systems = import ./lib/flake-parts/systems.nix { inherit inputs lib helpers; };
               my-homes   = import ./lib/flake-parts/homes.nix   { inherit inputs lib helpers; };
