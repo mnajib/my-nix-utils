@@ -1,6 +1,6 @@
 # my-nix-utils/flake.nix
 {
-  description = "Reusable NixOS and Home-Manager Flake Utilities by YourName";
+  description = "Reusable NixOS and Home-Manager Flake Utilities by Najib";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,39 +14,39 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        "x86_64-darwin" # Add macOS if your helpers support it
+        "x86_64-darwin"
         "aarch64-darwin"
       ];
 
       imports = [
-        # FIRST MODULE: Define the nixConfigRoot option.
-        # 'lib' is now explicitly in scope for this module.
+        # First module: defines nixConfigRoot option
         ({ lib, ... }: {
           options.flake.config.nixConfigRoot = lib.mkOption {
             type = lib.types.str;
-            default = "./"; # Default to current directory if not specified (for direct usage)
+            default = "./";
             description = "Root directory for Nix configurations in the consuming flake (e.g., './nix').";
           };
         })
 
-        # SECOND MODULE: Define the flakePartsModules and helpers.
-        # This module uses the 'config.nixConfigRoot' defined in the first module.
+        # Second module: inject helpers
         ({ config, lib, ... }:
           let
-            # Pass the configured nixConfigRoot to my-helpers.nix
-            helpers = import ./lib/my-helpers.nix { inherit lib; nixConfigRoot = config.nixConfigRoot; };
+            helpers = import ./lib/my-helpers.nix {
+              inherit lib;
+              nixConfigRoot = config.nixConfigRoot or ./.;  # Fallback for REPL or non-flake-parts context
+            };
           in
           {
             flake.flakePartsModules = {
-              # Pass the initialized 'helpers' object to your specific flake-parts modules
               my-systems = import ./lib/flake-parts/systems.nix { inherit inputs lib helpers; };
-              my-homes = import ./lib/flake-parts/homes.nix { inherit inputs lib helpers; };
+              my-homes   = import ./lib/flake-parts/homes.nix   { inherit inputs lib helpers; };
               my-modules = import ./lib/flake-parts/modules.nix { inherit inputs lib helpers; };
             };
-            # Optionally expose helpers for direct use in the consuming flake
+
             flake.lib.my-helpers = helpers;
           }
         )
       ];
     };
 }
+
