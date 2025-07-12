@@ -11,24 +11,13 @@
 
   outputs = inputs@{ self, nixpkgs, flake-parts, home-manager, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
-      ];
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
       imports = [
-        # First module: defines config.nixConfigRoot
-        ({ lib, ... }: {
-          options.flake.config.nixConfigRoot = lib.mkOption {
-            type = lib.types.str;
-            default = "./"; # fallback if not set by consumer
-            description = "Root directory for Nix configurations in the consumer flake (e.g., ./nix)";
-          };
-        })
+        # STEP 1: Define config.nixConfigRoot FIRST!
+        ./lib/flake-parts/configRoot.nix
 
-        # Second module: helpers and modules exposed to consumer
+        # STEP 2: Then use it when importing helpers
         ({ config, lib, ... }:
           let
             helpers = import ./lib/my-helpers.nix {
@@ -48,4 +37,3 @@
       ];
     };
 }
-
