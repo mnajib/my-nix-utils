@@ -14,10 +14,10 @@
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
       imports = [
-        # STEP 1: Define config.nixConfigRoot FIRST!
+        # 🧩 Move this directly to `imports`
         ./lib/flake-parts/configRoot.nix
 
-        # STEP 2: Then use it when importing helpers
+        # 🧠 Then dynamically create `helpers` AFTER config.nixConfigRoot is defined
         ({ config, lib, ... }:
           let
             helpers = import ./lib/my-helpers.nix {
@@ -25,6 +25,8 @@
               nixConfigRoot = config.nixConfigRoot;
             };
           in {
+            config._module.args.helpers = helpers;
+
             flake.flakePartsModules = {
               my-systems = import ./lib/flake-parts/systems.nix { inherit inputs lib helpers; };
               my-homes   = import ./lib/flake-parts/homes.nix   { inherit inputs lib helpers; };
