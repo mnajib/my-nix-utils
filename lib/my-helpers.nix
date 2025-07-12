@@ -22,29 +22,34 @@ let
     lib.filterAttrs (name: type: type == "directory") (builtins.readDir fullPath)  # <-- FIXED
     // lib.mapAttrs (name: type: "${fullPath}/${name}") (builtins.readDir fullPath);  # <-- FIXED
 
-  scanUserConfigs = usersPath:
-    let fullUsersPath = "${nixConfigRoot}/${usersPath}"; in
-    lib.mapAttrs (userName: userType:
+    scanUserConfigs = usersPath:
       let
-        userDir = "${fullUsersPath}/${userName}";
-        userCommonConfig =
-          if lib.pathExists "${userDir}/default.nix"
-          then "${userDir}/default.nix"
-          else null;
-        userHostConfigs =
-          lib.filterAttrs (hostName: hostType:
-            hostType == "directory" &&
-            lib.pathExists "${userDir}/${hostName}/default.nix"
-          ) (builtins.readDir userDir)  # <-- FIXED
-          // lib.mapAttrs (hostName: hostType:
-              "${userDir}/${hostName}/default.nix"
-            ) (builtins.readDir userDir);  # <-- FIXED
+        fullUsersPath = "${nixConfigRoot}/${usersPath}";
+        userDirs = lib.filterAttrs (_: type: type == "directory") (lib.readDir fullUsersPath);
       in
-      {
-        common = userCommonConfig;
-        hosts = userHostConfigs;
-      }
-    ) (lib.filterAttrs (name: type: type == "directory") (builtins.readDir fullUsersPath));  # <-- FIXED
+      lib.mapAttrs (userName: _:
+        let
+          userDir = "${fullUsersPath}/${userName}";
+          entries = lib.readDir userDir;
+          userCommonConfig =
+            if entries ? "default.nix"
+            then "${userDir}/default.nix"
+            else null;
+
+          hostDirs = lib.filterAttrs (name: type:
+            type == "directory" &&
+            lib.pathExists "${userDir}/${name}/default.nix"
+          ) entries;
+
+          hostConfigs = lib.mapAttrs (hostName: _:
+            "${userDir}/${hostName}/default.nix"
+          ) hostDirs;
+        in {
+          common = userCommonConfig;
+          hosts = hostConfigs;
+        }
+      ) userDirs;
+
 
 in {
   inherit importAllModules scanHostDirs scanUserConfigs nixConfigRoot;

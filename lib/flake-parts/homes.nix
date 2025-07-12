@@ -14,18 +14,23 @@ let
   profilesUsersPath = "profiles/users";
   allUserConfigs = helpers.scanUserConfigs profilesUsersPath;
 in {
-  flake.homeConfigurations = lib.mapAttrs' (userName: userConfig:
-    lib.nameValuePair "${userName}@${hostname}" (
-      inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-        modules = lib.cleanFilter (x: x != null) [
-          "${helpers.nixConfigRoot}/${profilesUsersPath}/common/default.nix" # Global common
-          userConfig.common
-        ];
-        extraSpecialArgs = {
-          inherit inputs;
+  flake.homeConfigurations = lib.foldlAttrs (acc: userName: userConfig:
+    acc // lib.foldlAttrs (acc': hostName: hostConfig:
+      let
+        configPath = hostConfig; # already a path string
+        name = "${userName}@${hostName}";
+      in
+      acc' // {
+        ${name} = inputs.home-manager.lib.homeManagerConfiguration {
+          pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+          modules = lib.cleanFilter (x: x != null) [
+            "${helpers.nixConfigRoot}/${profilesUsersPath}/common/default.nix"
+            userConfig.common
+            configPath
+          ];
+          extraSpecialArgs = { inherit inputs; };
         };
       }
-    )
-  ) allUserConfigs;
+    ) {} userConfig.hosts
+  ) {} allUserConfigs;
 }
