@@ -1,5 +1,4 @@
 # my-nix-utils/lib/my-helpers.nix
-# lib/my-helpers.nix
 { lib, nixConfigRoot ? ./., ... }:
 
 let
@@ -15,13 +14,13 @@ let
           else if lib.hasSuffix ".nix" name
           then import currentPath
           else null
-        ) (lib.readDir dir));
+        ) (builtins.readDir dir));  # <-- FIXED HERE
     in go fullPath;
 
   scanHostDirs = path:
     let fullPath = "${nixConfigRoot}/${path}"; in
-    lib.filterAttrs (name: type: type == "directory") (lib.readDir fullPath)
-    // lib.mapAttrs (name: type: "${fullPath}/${name}") (lib.readDir fullPath);
+    lib.filterAttrs (name: type: type == "directory") (builtins.readDir fullPath)  # <-- FIXED
+    // lib.mapAttrs (name: type: "${fullPath}/${name}") (builtins.readDir fullPath);  # <-- FIXED
 
   scanUserConfigs = usersPath:
     let fullUsersPath = "${nixConfigRoot}/${usersPath}"; in
@@ -36,16 +35,16 @@ let
           lib.filterAttrs (hostName: hostType:
             hostType == "directory" &&
             lib.pathExists "${userDir}/${hostName}/default.nix"
-          ) (lib.readDir userDir)
+          ) (builtins.readDir userDir)  # <-- FIXED
           // lib.mapAttrs (hostName: hostType:
               "${userDir}/${hostName}/default.nix"
-            ) (lib.readDir userDir);
+            ) (builtins.readDir userDir);  # <-- FIXED
       in
       {
         common = userCommonConfig;
         hosts = userHostConfigs;
       }
-    ) (lib.filterAttrs (name: type: type == "directory") (lib.readDir fullUsersPath));
+    ) (lib.filterAttrs (name: type: type == "directory") (builtins.readDir fullUsersPath));  # <-- FIXED
 
 in {
   inherit importAllModules scanHostDirs scanUserConfigs nixConfigRoot;
@@ -54,4 +53,3 @@ in {
   greeting = name: "Hello, ${name} from my-nix-utils!";
   version = "0.1.0";
 }
-
